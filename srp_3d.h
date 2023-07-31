@@ -307,7 +307,7 @@ struct dir
 vector<vector<vector<node>>> map_matrix_A;
 
 // 可调参数
-const int a_step = 5;
+const int a_step = 4;
 vector<dir> direction = { {a_step,0}, {-a_step,0}, {0,a_step}, {0,-a_step} }; // 正向
 vector<dir> ob_direction = { {a_step,a_step},{a_step,-a_step},{-a_step,-a_step},{-a_step,a_step} }; // 斜向
 const int path_len = 2;
@@ -530,7 +530,7 @@ struct stair
 		down_y = dy;
 	}
 };
-stair s1(0,85,7.6,85,11);
+stair s1(0,82,7.6,82,11);
 
 
 // 函数声明

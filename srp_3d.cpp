@@ -13,7 +13,7 @@ using namespace std;
 const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
-int agent_num = 500;
+int agent_num = 200;
 int step_num = 5000;
 double tick = 0.05;//timestep
 int jam_time_threshole = 50;
@@ -367,14 +367,16 @@ void step()
 			a->y = 1e-10;
 		}
 
-		if (a->path.size() > 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < 2 * a_step)
+		double arrive_range = (agent_counter / 5) < 1 ? 1 : (agent_counter / 5);
+
+		if (a->path.size() > 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < arrive_range * 3)
 		{
 
 			a->path.pop_front();
 			a->next_gx = a->path.front().x / map_factor;
 			a->next_gy = a->path.front().y / map_factor;
 		}
-		else if (a->path.size() == 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < 2 * a_step)
+		else if (a->path.size() == 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) <  arrive_range * 3)
 		{
 			// 判断是否到达最终目标,是则标注已到达,否则执行上下楼函数
 			if (a->goal_level == a->level)
@@ -384,15 +386,15 @@ void step()
 			else if (a->level < a->goal_level)
 			{
 				a->level += 1; // 还在楼下就上楼
-				a->x = s1.down_x;
-				a->y = s1.down_y;
+				a->x = s1.down_x + int(randval(-2, 2));
+				a->y = s1.down_y + int(randval(-2, 2));
 				update_g(a);
 			}
 			else if (a->level > a->goal_level)
 			{
 				a->level -= 1; // 还在楼上就下楼
-				a->x = s1.up_x;
-				a->y = s1.up_y;
+				a->x = s1.up_x + int(randval(-2, 2));
+				a->y = s1.up_y + int(randval(-2, 2));
 				update_g(a);
 			}
 
