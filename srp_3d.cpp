@@ -13,7 +13,7 @@ using namespace std;
 const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
-int agent_num = 200;
+int agent_num = 500;
 int step_num = 5000;
 double tick = 0.05;//timestep
 int jam_time_threshole = 50;
@@ -33,7 +33,7 @@ FILE* f = fopen("C:/Users/leesh/Desktop/srp/output_3d/output.txt", "w");
 FILE* ff = fopen("C:/Users/leesh/Desktop/srp/output_3d/test.txt", "w");
 
 // 终点
-struct cordinate goal[1] = { {80,57.5,1} };
+struct cordinate goal[6] = { {80,57.5,1} , { 54,18,0 }, { 13.5,55.5,0 }, { 50,41,1 }, { 80,18.4,2 }, {50,34.7,2} };
 
 
 
@@ -199,7 +199,7 @@ void init_agent(int agent_num)
 	cout << "Initializing " << agent_num << " agent(s)" << endl;;
 	for (int i = 0; i < agent_num; i++)
 	{
-		int rand = int(randval(0, 1));
+		int rand = int(randval(0, 6));
 		//cout << rand << endl;
 		AGENT a;
 		a.id = i;
@@ -366,17 +366,18 @@ void step()
 		{
 			a->y = 1e-10;
 		}
+		//cout << agent_counter << endl;
 
-		double arrive_range = (agent_counter / 5) < 1 ? 1 : (agent_counter / 5);
+		double arrive_range = agent_counter > 25 ? 5 : 1;
 
-		if (a->path.size() > 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < arrive_range * 3)
+		if (a->path.size() > 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < arrive_range * a_step)
 		{
 
 			a->path.pop_front();
 			a->next_gx = a->path.front().x / map_factor;
 			a->next_gy = a->path.front().y / map_factor;
 		}
-		else if (a->path.size() == 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) <  arrive_range * 3)
+		else if (a->path.size() == 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) <  arrive_range * a_step)
 		{
 			// 判断是否到达最终目标,是则标注已到达,否则执行上下楼函数
 			if (a->goal_level == a->level)
@@ -520,7 +521,7 @@ int main()
 	{
 		step();
 
-		if ((i + 1) % 50 == 0)
+		if ((i + 1) % jam_time_threshole == 0)
 		{
 			update_density();
 		}
