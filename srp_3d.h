@@ -307,9 +307,10 @@ struct dir
 vector<vector<vector<node>>> map_matrix_A;
 
 // 可调参数
-const int a_step = 6;
+const int a_step = 5;
 vector<dir> direction = { {a_step,0}, {-a_step,0}, {0,a_step}, {0,-a_step} }; // 正向
 vector<dir> ob_direction = { {a_step,a_step},{a_step,-a_step},{-a_step,-a_step},{-a_step,a_step} }; // 斜向
+vector<dir> wall_detect = { {a_step,0}, {-a_step,0}, {0,a_step}, {0,-a_step},{a_step,a_step},{a_step,-a_step},{-a_step,-a_step},{-a_step,a_step} };
 const int path_len = 1;
 const int max_time = 800; // ms
 
@@ -403,13 +404,26 @@ void A_star(AGENT* a)
 						flag = 1;
 						break;
 					}
+					
 				}
 				if (wall)
 				{
 					continue;
 				}
-
-
+				for (auto dd : wall_detect)
+				{
+					if (in_map(temp->x + d.x + dd.x, temp->y + d.y + dd.y, a->level))
+					{
+						if (map_matrix[a->level][temp->y + d.y + dd.y][temp->x + d.x + dd.x] == 0)
+						{
+							wall = 1;
+						}
+					}
+				}
+				if (wall)
+				{
+					continue;
+				}
 				int point_type = map_matrix[a->level][temp->y + d.y][temp->x + d.x];
 				//if (density_map[temp->y + d.y][temp->x + d.x])point_type == 0;
 				//cout << density_map[temp->y + d.y][temp->x + d.x] << endl;
@@ -445,6 +459,21 @@ void A_star(AGENT* a)
 			{
 				if (in_map(temp->x + d.x, temp->y + d.y,a->level))
 				{
+					bool wall = 0;
+					for (auto dd : wall_detect)
+					{
+						if (in_map(temp->x + d.x + dd.x, temp->y + d.y + dd.y, a->level))
+						{
+							if (map_matrix[a->level][temp->y + d.y + dd.y][temp->x + d.x + dd.x] == 0)
+							{
+								wall = 1;
+							}
+						}
+					}
+					if (wall)
+					{
+						continue;
+					}
 					int point_type = map_matrix[a->level][temp->y + d.y][temp->x + d.x];
 					//if (density_map[temp->y + d.y][temp->x + d.x])point_type == 0;
 					if (point_type != 0 && map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].check == 0)//节点在地图内，且不在障碍物部分,且未check过 && map_matrix_A[temp->y + d.y][temp->x + d.x].check == 0

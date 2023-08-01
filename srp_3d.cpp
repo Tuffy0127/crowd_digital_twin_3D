@@ -293,11 +293,10 @@ void step()
 		double total_force_x = 0;
 		double total_force_y = 0;
 
-		if (a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1)
+		if ((!a->arrived) && a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1)
 		{
 			a->tao_1 *= ((jam_time_threshole - a->jam_time) / jam_time_threshole);
 			a->jam_time += 1;
-
 		}
 		else
 		{
@@ -424,6 +423,7 @@ void update_density()
 	
 	for (int i = 0; i < agent_list.size(); ++i)
 	{
+		if (agent_list[i].arrived)continue;
 		if (agent_list[i].vx <= 0.1 && agent_list[i].vy <= 0.1)
 		{
 
