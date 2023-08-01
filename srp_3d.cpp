@@ -50,6 +50,7 @@ void step();
 void update_density();
 void test();
 void push_new_agent();
+bool cross(double sx1, double sy1, double ex1, double ey1, double sx2, double sy2, double ex2, double ey2);
 
 
 // 函数实现
@@ -283,7 +284,7 @@ void step()
 		//first compute the desired direction;
 		double goal_dis = sqrt((a->x - a->next_gx) * (a->x - a->next_gx) + (a->y - a->next_gy) * (a->y - a->next_gy));
 		if (goal_dis == 0)goal_dis = 1e-10;
-		a->tao_1 = 0.1 + (goal_dis / a->dis) * 0.5;
+		a->tao_1 = 0.2 + (goal_dis / a->dis) * 0.3;
 		double dx = a->v0 * (a->next_gx - a->x) / goal_dis;//期望方向向量的x
 		double dy = a->v0 * (a->next_gy - a->y) / goal_dis;
 
@@ -367,8 +368,9 @@ void step()
 		}
 		//cout << agent_counter << endl;
 
-		double arrive_range = agent_counter > 25 ? 5 : 1;
+		double arrive_range = agent_counter > 25 ? 3 : 1;
 
+		
 		if (a->path.size() > 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < arrive_range * a_step)
 		{
 
@@ -434,7 +436,7 @@ void update_density()
 
 					if (in_map(int(agent_list[i].x * map_factor + j), int(agent_list[i].y * map_factor + k), agent_list[i].level))
 					{
-						density_map[agent_list[i].level][int(agent_list[i].y * map_factor + k)][int(agent_list[i].x * map_factor + j)] += 2 * (abs(j) + abs(k));
+						density_map[agent_list[i].level][int(agent_list[i].y * map_factor + k)][int(agent_list[i].x * map_factor + j)] += 2 * (abs(j) + abs(k));//***
 					}
 				}
 			}
@@ -478,6 +480,25 @@ void push_new_agent()
 
 		}
 	}
+}
+
+
+
+// 暂时没用
+double mult(double x1, double y1, double x2, double y2, double x3, double y3)
+{
+	return (x1 - x3) * (y2 - y3) - (x2 - x3) * (y1 - y3);
+}
+
+bool cross(double sx1, double sy1, double ex1, double ey1, double sx2, double sy2, double ex2, double ey2)
+{
+	if (max(sx1, ex1) < min(sx2, ex2))return false;
+	if (max(sy1, ey1) < min(sy2, ey2))return false;
+	if (max(sx2, ex2) < min(sx1, ex1))return false;
+	if (max(sy2, ey2) < min(sy1, ey1))return false;
+	if (mult(sx2, sy2, ex1, ey1, sx1, sx2) * mult(ex1, ey1, ex2, ey2, sx1, sy1) < 0)return false;
+	if (mult(sx1, sy1, ex2, ey2, sx2, sy2) * mult(ex2, ey2, ex1, ey1, sx2, sy2) < 0)return false;
+	return true;
 }
 
 

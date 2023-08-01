@@ -308,9 +308,10 @@ vector<vector<vector<node>>> map_matrix_A;
 
 // 可调参数
 const int a_step = 5;
+const int detect_step = 3;
 vector<dir> direction = { {a_step,0}, {-a_step,0}, {0,a_step}, {0,-a_step} }; // 正向
 vector<dir> ob_direction = { {a_step,a_step},{a_step,-a_step},{-a_step,-a_step},{-a_step,a_step} }; // 斜向
-vector<dir> wall_detect = { {a_step,0}, {-a_step,0}, {0,a_step}, {0,-a_step},{a_step,a_step},{a_step,-a_step},{-a_step,-a_step},{-a_step,a_step} };
+vector<dir> wall_detect = { {detect_step,0}, {-detect_step,0}, {0,detect_step}, {0,-detect_step},{detect_step,detect_step},{detect_step,-detect_step},{-detect_step,-detect_step},{-detect_step,detect_step} };
 const int path_len = 1;
 const int max_time = 800; // ms
 
