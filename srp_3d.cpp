@@ -13,8 +13,8 @@ using namespace std;
 const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
-int agent_num = 500;
-int step_num = 5000;
+int agent_num = 200;
+int step_num = 20000;
 double tick = 0.05;//timestep
 int jam_time_threshole = 50;
 double total_time = 0;
@@ -233,6 +233,10 @@ void init_agent(int agent_num)
 		a.next_gx = goal[rand].x;
 		a.next_gy = goal[rand].y;
 		a.dis = sqrt((a.x - a.gx) * (a.x - a.gx) + (a.y - a.gy) * (a.y - a.gy)) * (abs(a.goal_level-a.level)+1);
+		
+		// 在这里push a到Q->out_list会出问题
+		
+
 		agent_list.push_back(a);
 	}
 
@@ -276,6 +280,61 @@ void step()
 	for (int i = 0; i < agent_list.size(); ++i)
 	{
 		AGENT* a = &agent_list[i];
+		
+		if (a->arrived)
+		{
+			if (a->go_queue)
+			{
+				//cout << "arrived" << endl;
+				a->arrived = false;
+				a->go_queue = false;
+				a->in_queue = true;
+				a->Q->a_num += 1;
+				//cout << "aaa "<<a->Q->a_num << endl;
+				a->order = a->Q->a_num;
+				//cout <<"bbb " << a->order << endl;
+				a->path.clear();
+				if (a->order > a->Q->point_num)
+				{
+					a->Q->point_num = a->order;
+					a->Q->queue_back();
+				}
+				
+				a->next_gx = a->Q->path[a->order].x;
+				a->next_gy = a->Q->path[a->order].y;
+				//cout << a->next_gx << " " << a->next_gy << endl;
+				//a->Q->in_list.push_back(a);
+			}
+		}
+
+		if (a->in_queue && a->order == 1 && sqrt((a->x - a->Q->x)* (a->x - a->Q->x)+(a->y - a->Q->y)* (a->x - a->Q->x))<1)
+		{
+			//cout << "order 1" << endl;
+			a->process_time += tick;
+			if (a->process_time >= 3)
+			{
+				a->process_time = 0;
+				a->Q->a_num -= 1;
+				for (auto& a_q : a->Q->out_list)
+				{
+					if (a_q->order  && a_q->in_queue)
+					{
+						a_q->order -= 1;
+						a_q->next_gx = a->Q->path[a_q->order].x;
+						a_q->next_gy = a->Q->path[a_q->order].y;
+					}
+				}
+				a->in_queue = false;
+				a->Q->out_list.remove(a);
+				// cout << a->order << endl;
+				int rand = int(randval(0, 6));
+				a->fgx = goal[rand].x;
+				a->fgy = goal[rand].y;
+				a->goal_level = goal[rand].level;
+				update_g(a);
+			}
+		}
+
 		if (a->np == 1)
 		{
 			output(a);
@@ -294,7 +353,7 @@ void step()
 		double total_force_x = 0;
 		double total_force_y = 0;
 
-		if ((!a->arrived) && a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1)
+		if ((!a->arrived) && a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1 && !a->in_queue)
 		{
 			a->tao_1 *= ((jam_time_threshole - a->jam_time) / jam_time_threshole);
 			a->jam_time += 1;
@@ -368,22 +427,23 @@ void step()
 		}
 		//cout << agent_counter << endl;
 
-		double arrive_range = agent_counter > 25 ? 3 : 1;
-
+		a->arrive_range = agent_counter > 25 ? 3 : 1;
+	
 		
-		if (a->path.size() > 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < arrive_range * a_step)
+		if (a->path.size() > 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < a->arrive_range * a_step)
 		{
 
 			a->path.pop_front();
 			a->next_gx = a->path.front().x / map_factor;
 			a->next_gy = a->path.front().y / map_factor;
 		}
-		else if (a->path.size() == 1 && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) <  arrive_range * a_step)
+		else if (a->path.size() == 1 && !a->go_queue && !a->in_queue && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < a->arrive_range * a_step)
 		{
 			// 判断是否到达最终目标,是则标注已到达,否则执行上下楼函数
 			if (a->goal_level == a->level)
 			{
 				a->arrived = true;
+
 			}// 注意: 这里假设的是agent已经走到这一层的目标点了,默认情况下如果不是目标层,这一层的目标点一定是楼梯位
 			else if (a->level < a->goal_level)
 			{
@@ -401,6 +461,15 @@ void step()
 			}
 
 		}
+
+		if (a->go_queue && a->path.size() <= 10 && a->goal_level == a->level && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < 100)
+		{
+				a->arrived = true;
+		}
+
+		
+		
+
 
 		output(a);
 
@@ -529,6 +598,19 @@ int main()
 	cout << "Initializing path..." << endl;
 	for (auto& a : agent_list)
 	{
+		a.go_queue = true;
+		if (a.go_queue)
+		{
+			
+			
+			int rand_q = int(randval(0, 2));
+			a.Q = q_list[rand_q];
+			
+			a.order = 0;
+			// cout << a.order << endl;
+			a.Q->out_list.push_back(&a);
+			go_queue(&a);
+		}
 		update_g(&a);
 		counter++;
 		printf("A_star: %d / %d \r", counter, agent_num);

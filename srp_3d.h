@@ -5,6 +5,7 @@
 #include<vector>
 #include<iostream>
 #include<list>
+#include<queue>
 
 using namespace std;
 
@@ -38,6 +39,8 @@ double  map_factor = 10;
 vector<vector<vector<int>>> map_matrix; // 点阵图
 vector<vector<vector<int>>> density_map; // 人群密度图,给A*考虑选取人少的路径
 
+
+struct QUEUE;
 
 
 // 结构体
@@ -80,6 +83,16 @@ struct AGENT
 	double arrive_time = 0;
 
 	bool arrived = 0;
+	double arrive_range = 0;
+
+	// queue
+	QUEUE* Q;
+	bool go_queue = 0;
+	int order = 0;
+	bool in_queue = 0;
+	double process_time = 0;
+
+
 	
 	
 
@@ -632,3 +645,92 @@ void use_lift(AGENT* a)
 {
 
 }
+
+//---------------------------------------------以上为3D部分-------------------------------------------------
+
+//---------------------------------------------以下为排队部分-------------------------------------------------
+
+struct QUEUE
+{
+	int id;
+	int a_num = 0;
+	double x;
+	double y;
+	int level;
+	//bool symptom = 1;
+	list<AGENT*> out_list;
+	// list<AGENT*> in_list;
+	vector<cordinate> path;
+
+	int point_num = 0;
+	QUEUE() = default;
+	QUEUE(int id1,double x1, double y1,int level1)
+	{
+		id = id1;
+		x = x1;
+		y = y1;
+		level = level1;
+		a_num = 0;
+		path.push_back(cordinate(x, y , level));
+	}
+	
+	void queue_back();
+
+};
+QUEUE* q = new QUEUE(0, 53.4, 71.5, 0);
+
+QUEUE* q1 = new QUEUE(0, 48.4, 71.5, 0);
+
+vector<QUEUE*> q_list = { q,q1 };
+
+// 函数声明
+void go_queue(AGENT*);
+
+
+// 53.4 71.5
+
+
+// 函数实现
+void go_queue(AGENT* a)
+{
+	a->fgx = a->Q->x;
+	a->fgy = a->Q->y;
+	a->goal_level = a->Q->level;
+}
+
+void QUEUE::queue_back()
+{
+	if (a_num < 20)
+	{
+		path.push_back(cordinate(x, y - (a_num / map_factor) * 10, level));
+	}
+	else
+	{
+		path.push_back(cordinate(x, y - (20 / map_factor) * 10 - (a_num - 20) / map_factor * 0.1, level));
+	}
+	
+}
+
+
+
+//---------------------------------------------以上为排队部分-------------------------------------------------
+
+//---------------------------------------------以下为RPD部分-------------------------------------------------
+
+struct doing
+{
+	double time;
+};
+
+
+struct RPD_model
+{
+	int symptom;
+	int state;
+	int time;
+
+};
+
+
+
+

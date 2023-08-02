@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="srp_3d.h" />
+    <ClInclude Include="标头.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="srp_3d.cpp" />
