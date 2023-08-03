@@ -40,8 +40,8 @@ vector<vector<vector<int>>> map_matrix; // 点阵图
 vector<vector<vector<int>>> density_map; // 人群密度图,给A*考虑选取人少的路径
 
 
-struct QUEUE;
 
+struct QUEUE;
 
 // 结构体
 struct cordinate {
@@ -91,6 +91,7 @@ struct AGENT
 	int order = 0;
 	bool in_queue = 0;
 	double process_time = 0;
+	double cant_process_time = 0;
 
 
 	
@@ -650,6 +651,11 @@ void use_lift(AGENT* a)
 
 //---------------------------------------------以下为排队部分-------------------------------------------------
 
+
+// 终点
+struct cordinate goal[6] = { {80,57.5,1} , { 54,18,0 }, { 13.5,55.5,0 }, { 50,41,1 }, { 80,18.4,2 }, {50,34.7,2} };
+
+
 struct QUEUE
 {
 	int id;
@@ -677,38 +683,111 @@ struct QUEUE
 	void queue_back();
 
 };
-QUEUE* q = new QUEUE(0, 53.4, 71.5, 0);
-
-QUEUE* q1 = new QUEUE(0, 48.4, 71.5, 0);
-
-vector<QUEUE*> q_list = { q,q1 };
-
-// 函数声明
-void go_queue(AGENT*);
-
-
-// 53.4 71.5
-
-
-// 函数实现
-void go_queue(AGENT* a)
-{
-	a->fgx = a->Q->x;
-	a->fgy = a->Q->y;
-	a->goal_level = a->Q->level;
-}
 
 void QUEUE::queue_back()
 {
-	if (a_num < 20)
+	if (a_num < 10)
 	{
 		path.push_back(cordinate(x, y - (a_num / map_factor) * 10, level));
 	}
 	else
 	{
-		path.push_back(cordinate(x, y - (20 / map_factor) * 10 - (a_num - 20) / map_factor * 0.1, level));
+		path.push_back(cordinate(x, y - (10 / map_factor) * 10 - (a_num - 10) / map_factor * 0.01, level));
 	}
+
+}
+
+// 队列创建 在init_map中
+// 53.4 71.5
+
+vector<QUEUE*> q_list = {};
+
+
+// 函数声明
+void go_queue(AGENT*,QUEUE*);
+void in_queue(AGENT*);
+void out_queue(AGENT*);
+void cant_process(AGENT*);
+
+// 参数
+double registration_time = 10;
+
+
+// 函数实现
+// agent选择一个队列加入
+void go_queue(AGENT* a,QUEUE* q)
+{
+	a->go_queue = true;
+	a->order = 0;
+	a->Q = q;
+	a->fgx = a->Q->x;
+	a->fgy = a->Q->y;
+	a->goal_level = a->Q->level;
+	q->out_list.push_back(a);
+}
+
+// 当go_agent状态的agent来到队列附近判定为arrive时，开始进入排队进程
+void in_queue(AGENT* a)
+{
+	a->arrived = false;
+	a->go_queue = false;
+	a->in_queue = true;
+	a->Q->a_num += 1;
+	a->order = a->Q->a_num;
+	a->path.clear();
+	if (a->order > a->Q->point_num)
+	{
+		a->Q->point_num = a->order;
+		a->Q->queue_back();
+	}
+
+	a->next_gx = a->Q->path[a->order].x;
+	a->next_gy = a->Q->path[a->order].y;
+
+}
+
+// 挂号完毕，离开队列，去自己的目标
+void out_queue(AGENT* a)
+{
 	
+	a->process_time = 0;
+	a->Q->a_num -= 1;
+	for (auto& a_q : a->Q->out_list)
+	{
+		if (a_q->order && a_q->in_queue)
+		{
+			a_q->order -= 1;
+			a_q->next_gx = a->Q->path[a_q->order].x;
+			a_q->next_gy = a->Q->path[a_q->order].y;
+		}
+	}
+	a->in_queue = false;
+	a->Q->out_list.remove(a);
+	int rand = int(randval(0, 6));
+	a->fgx = goal[rand].x;
+	a->fgy = goal[rand].y;
+	a->goal_level = goal[rand].level;
+	update_g(a);
+}
+
+void cant_process(AGENT* a)
+{
+	
+	a->cant_process_time = 0;
+	a->process_time = 0;
+	a->Q->a_num -= 1;
+	for (auto& a_q : a->Q->out_list)
+	{
+		if (a_q->order && a_q->in_queue)
+		{
+			a_q->order -= 1;
+			a_q->next_gx = a->Q->path[a_q->order].x;
+			a_q->next_gy = a->Q->path[a_q->order].y;
+		}
+	}
+	a->in_queue = false;
+	in_queue(a);
+
 }
 
 

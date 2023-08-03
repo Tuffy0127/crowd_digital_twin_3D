@@ -13,17 +13,17 @@ using namespace std;
 const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
-int agent_num = 200;
+int agent_num = 500;
 int step_num = 20000;
-double tick = 0.05;//timestep
-int jam_time_threshole = 50;
+double tick = 0.05; // timestep
+int jam_time_threshole_1 = 50; // 高agent密度拥堵时间阈值
+int jam_time_threshole_2 = 150; // 低agent密度拥堵时间阈值
 double total_time = 0;
 
 // 程序数据
 int  obstical_line_num[total_level] = {};
 clock_t total_start, total_end;
 vector<AGENT> agent_list; // agent vector
-//struct OBLINE obstical_lines[total_level][MAX_OBLINE_NUM]; // obstical line array
 vector<vector<OBLINE>> obline_list;
 vector<vector<double>> seq;
 vector<AGENT> agent_back_list; // agent vector
@@ -31,10 +31,6 @@ vector<AGENT> agent_back_list; // agent vector
 // 输出文件
 FILE* f = fopen("C:/Users/leesh/Desktop/srp/output_3d/output.txt", "w");
 FILE* ff = fopen("C:/Users/leesh/Desktop/srp/output_3d/test.txt", "w");
-
-// 终点
-struct cordinate goal[6] = { {80,57.5,1} , { 54,18,0 }, { 13.5,55.5,0 }, { 50,41,1 }, { 80,18.4,2 }, {50,34.7,2} };
-
 
 
 
@@ -50,7 +46,7 @@ void step();
 void update_density();
 void test();
 void push_new_agent();
-bool cross(double sx1, double sy1, double ex1, double ey1, double sx2, double sy2, double ex2, double ey2);
+
 
 
 // 函数实现
@@ -141,6 +137,14 @@ void init_map(string map_file[], int level)
 		density_map.push_back(temp5);
 
 	}
+
+	// queue
+	for (int i = 0; i < 10; ++i)
+	{
+		QUEUE* q = new QUEUE(0, 56.4 - i * 3, 71.5, 0);
+		q_list.push_back(q);
+	}
+
 	
 
 }
@@ -285,54 +289,36 @@ void step()
 		{
 			if (a->go_queue)
 			{
-				//cout << "arrived" << endl;
-				a->arrived = false;
-				a->go_queue = false;
-				a->in_queue = true;
-				a->Q->a_num += 1;
-				//cout << "aaa "<<a->Q->a_num << endl;
-				a->order = a->Q->a_num;
-				//cout <<"bbb " << a->order << endl;
-				a->path.clear();
-				if (a->order > a->Q->point_num)
-				{
-					a->Q->point_num = a->order;
-					a->Q->queue_back();
-				}
-				
-				a->next_gx = a->Q->path[a->order].x;
-				a->next_gy = a->Q->path[a->order].y;
-				//cout << a->next_gx << " " << a->next_gy << endl;
-				//a->Q->in_list.push_back(a);
+				in_queue(a);
 			}
 		}
 
-		if (a->in_queue && a->order == 1 && sqrt((a->x - a->Q->x)* (a->x - a->Q->x)+(a->y - a->Q->y)* (a->x - a->Q->x))<1)
+		// agent 为队首
+		if (a->in_queue && a->order == 1)
 		{
 			//cout << "order 1" << endl;
-			a->process_time += tick;
-			if (a->process_time >= 3)
+			// 并且已经在柜台前
+			if (sqrt((a->x - a->Q->x) * (a->x - a->Q->x) + (a->y - a->Q->y) * (a->x - a->Q->x)) < 1)
 			{
-				a->process_time = 0;
-				a->Q->a_num -= 1;
-				for (auto& a_q : a->Q->out_list)
+				a->cant_process_time = 0;
+				a->process_time += tick;
+				if (a->process_time >= registration_time)
 				{
-					if (a_q->order  && a_q->in_queue)
-					{
-						a_q->order -= 1;
-						a_q->next_gx = a->Q->path[a_q->order].x;
-						a_q->next_gy = a->Q->path[a_q->order].y;
-					}
+					// 后期不同的行为序列在此处为agent的目标赋值
+					out_queue(a);
 				}
-				a->in_queue = false;
-				a->Q->out_list.remove(a);
-				// cout << a->order << endl;
-				int rand = int(randval(0, 6));
-				a->fgx = goal[rand].x;
-				a->fgy = goal[rand].y;
-				a->goal_level = goal[rand].level;
-				update_g(a);
 			}
+			else
+			{
+				a->cant_process_time += tick;
+				if (a->cant_process_time >= registration_time - 3)
+				{
+					// cout << "cant" << endl;
+					cant_process(a);
+				}
+			}
+			
+			
 		}
 
 		if (a->np == 1)
@@ -340,6 +326,7 @@ void step()
 			output(a);
 			continue;
 		}
+
 		//first compute the desired direction;
 		double goal_dis = sqrt((a->x - a->next_gx) * (a->x - a->next_gx) + (a->y - a->next_gy) * (a->y - a->next_gy));
 		if (goal_dis == 0)goal_dis = 1e-10;
@@ -352,16 +339,6 @@ void step()
 
 		double total_force_x = 0;
 		double total_force_y = 0;
-
-		if ((!a->arrived) && a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1 && !a->in_queue)
-		{
-			a->tao_1 *= ((jam_time_threshole - a->jam_time) / jam_time_threshole);
-			a->jam_time += 1;
-		}
-		else
-		{
-			a->jam_time = 0;
-		}
 
 
 		int agent_counter = 0;
@@ -377,22 +354,6 @@ void step()
 				agent_force(a, b, &total_force_x, &total_force_y, dis);
 			}
 		}
-		//cout << agent_counter << endl;
-		//12 25
-		if (a->jam_time >= jam_time_threshole && agent_counter > 10 && agent_counter <= 20) // 还没被挤入人群的绕路走,已经在人群里的就别搜了老老实实挤吧
-		{
-			a->jam_time = 0;
-			a->path.clear();
-			A_star(a);
-
-		}
-		else if (a->jam_time >= jam_time_threshole + 100)
-		{
-			a->jam_time = 0;
-			a->path.clear();
-			A_star(a);
-		}
-
 
 		//int id = omp_get_thread_num();
 		for (int j = 0; j < obstical_line_num[a->level]; j++)
@@ -425,8 +386,37 @@ void step()
 		{
 			a->y = 1e-10;
 		}
-		//cout << agent_counter << endl;
 
+
+		// jam_time 判断
+		if ((!a->arrived) && a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1 && !a->in_queue)
+		{
+			a->tao_1 *= ((jam_time_threshole_2 - a->jam_time) / jam_time_threshole_2);
+			a->jam_time += 1;
+
+
+			// jam_time 超时判断
+			if (a->jam_time >= jam_time_threshole_1 && agent_counter > 10 && agent_counter <= 20) // 还没被挤入人群的绕路走,已经在人群里的就别搜了老老实实挤吧
+			{
+				a->jam_time = 0;
+				a->path.clear();
+				A_star(a);
+
+			}
+			else if (a->jam_time >= jam_time_threshole_2)
+			{
+				a->jam_time = 0;
+				a->path.clear();
+				A_star(a);
+			}
+
+		}
+		else
+		{
+			a->jam_time = 0;
+		}
+
+		// 周围agent数量指定到达范围
 		a->arrive_range = agent_counter > 25 ? 3 : 1;
 	
 		
@@ -462,13 +452,12 @@ void step()
 
 		}
 
-		if (a->go_queue && a->path.size() <= 10 && a->goal_level == a->level && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < 100)
+
+		// go_queue 去排队状态的判断
+		if (a->go_queue && a->path.size() <= 10 && a->goal_level == a->level && sqrt((a->x- a->Q->x) * (a->x - a->Q->x) + (a->y - a->Q->y) * (a->y - a->Q->y)) < 10)
 		{
 				a->arrived = true;
 		}
-
-		
-		
 
 
 		output(a);
@@ -553,12 +542,12 @@ void push_new_agent()
 
 
 
-// 暂时没用
+// 以下两个暂时没用，用于判断两条直线是否相交
 double mult(double x1, double y1, double x2, double y2, double x3, double y3)
 {
 	return (x1 - x3) * (y2 - y3) - (x2 - x3) * (y1 - y3);
 }
-
+ 
 bool cross(double sx1, double sy1, double ex1, double ey1, double sx2, double sy2, double ex2, double ey2)
 {
 	if (max(sx1, ex1) < min(sx2, ex2))return false;
@@ -581,6 +570,7 @@ int main()
 
 	// omp_set_num_threads(thread_num);
 
+	//全部初始化
 	init();
 
 
@@ -598,24 +588,16 @@ int main()
 	cout << "Initializing path..." << endl;
 	for (auto& a : agent_list)
 	{
-		a.go_queue = true;
-		if (a.go_queue)
-		{
-			
-			
-			int rand_q = int(randval(0, 2));
-			a.Q = q_list[rand_q];
-			
-			a.order = 0;
-			// cout << a.order << endl;
-			a.Q->out_list.push_back(&a);
-			go_queue(&a);
-		}
+		int rand_q = int(randval(0, 10));
+		go_queue(&a, q_list[rand_q]);
+
 		update_g(&a);
 		counter++;
 		printf("A_star: %d / %d \r", counter, agent_num);
 	}
 	cout << endl;
+
+
 	// 开始模拟
 	clock_t start, end;
 	cout << "Start steps..." << endl;
@@ -624,10 +606,12 @@ int main()
 	{
 		step();
 
-		if ((i + 1) % jam_time_threshole == 0)
+		// 保证在agent重新搜索路径之前就能更新一次密度图
+		if ((i + 1) % jam_time_threshole_1-1 == 0)
 		{
 			update_density();
 		}
+
 		if ((i + 1) % 10 == 0)
 		{
 
@@ -637,8 +621,8 @@ int main()
 		}
 
 	}
-	cout << endl;
 
+	cout << endl;
 	total_end = clock();
 	cout << "Done " << step_num << " step(s). Total time :" << (total_end - total_start) / 1000 / 60 << " min(s)" << endl;
 
