@@ -14,7 +14,7 @@ const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
 int agent_num = 500;
-int step_num = 20000;
+int step_num = 23000;
 double tick = 0.05; // timestep
 int jam_time_threshole_1 = 50; // 高agent密度拥堵时间阈值
 int jam_time_threshole_2 = 150; // 低agent密度拥堵时间阈值
@@ -139,9 +139,9 @@ void init_map(string map_file[], int level)
 	}
 
 	// queue
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 15; ++i)
 	{
-		QUEUE* q = new QUEUE(0, 56.4 - i * 3, 71.5, 0);
+		QUEUE* q = new QUEUE(0, 56.4 - i * 2.5, 71.5, 0);
 		q_list.push_back(q);
 	}
 
@@ -267,7 +267,10 @@ void init()
 void output(AGENT* a)
 {
 	fprintf(f, "%d %g %g %d %d %d\n", a->id, a->x, a->y,a->level , a->np, a->color);
-	fprintf(ff, "%d,%g,%g,%d,%g,%g\n", a->id, a->x, a->y,a->level, a->vx, a->vy);
+	double dx = a->next_gx - a->x;
+	double dy = a->next_gy - a->y;
+	fprintf(ff, "%d,%g,%g,%d,%g,%g\n", a->id, a->x, a->y, a->level, dx, dy);
+	// fprintf(ff, "%d,%g,%g,%d,%g,%g\n", a->id, a->x, a->y,a->level, a->vx, a->vy);
 }
 
 
@@ -588,7 +591,7 @@ int main()
 	cout << "Initializing path..." << endl;
 	for (auto& a : agent_list)
 	{
-		int rand_q = int(randval(0, 10));
+		int rand_q = int(randval(0, 15));
 		go_queue(&a, q_list[rand_q]);
 
 		update_g(&a);
