@@ -1,8 +1,9 @@
 ﻿  srp_3d.cpp
-C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(416,39): warning C4244: “参数”: 从“double”转换到“const unsigned __int64”，可能丢失数据
-C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(416,69): warning C4244: “参数”: 从“double”转换到“const unsigned __int64”，可能丢失数据
-C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(452,72): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
-C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(460,73): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
-C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(501,73): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
-C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(509,74): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(539,39): warning C4244: “参数”: 从“double”转换到“const unsigned __int64”，可能丢失数据
+C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(539,69): warning C4244: “参数”: 从“double”转换到“const unsigned __int64”，可能丢失数据
+C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(575,72): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(583,73): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(624,73): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(632,74): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.cpp(167,10): warning C4101: “temp”: 未引用的局部变量
   srp_3d.vcxproj -> C:\Users\leesh\Desktop\srp\srp_3d\x64\Debug\srp_3d.exe

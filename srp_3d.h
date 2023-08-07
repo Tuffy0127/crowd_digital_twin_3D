@@ -40,8 +40,16 @@ vector<vector<vector<int>>> map_matrix; // 点阵图
 vector<vector<vector<int>>> density_map; // 人群密度图,给A*考虑选取人少的路径
 
 
-
+// 结构体声明
+struct cordinate;
+struct AGENT;
+struct OBLINE;
+struct node;
+struct dir;
+struct STAIR;
 struct QUEUE;
+struct ROOM;
+
 
 // 结构体
 struct cordinate {
@@ -56,6 +64,7 @@ struct cordinate {
 		level = l;
 	}
 }; // 坐标结构体
+
 struct AGENT
 {
 	int id;
@@ -94,12 +103,20 @@ struct AGENT
 	double cant_process_time = 0;
 
 
+	// room
+	ROOM* r;
+	bool go_room = 0;
+	bool in_room = 0;
+	double room_time = 0;
+
+
 	
 	
 
 
 	list<cordinate> path; // A* 路径存储
 }; // agent 结构体
+
 struct OBLINE
 {
 	double sx; // start point
@@ -109,6 +126,154 @@ struct OBLINE
 	double len; // length
 
 }; // 障碍物结构体
+
+struct node
+{
+	int x;
+	int y;
+	int g; // 移动代价
+	int h; // 估算成本
+	bool flag; // 这里用flag来表示node被推入close_list
+	bool check;
+
+
+
+	node* parent; // 父节点,从终点依次指向起点
+
+	node() = default;
+
+	node(int a, int b, double h = 0) {
+		flag = 0;
+		check = 0;
+		x = a;
+		y = b;
+		h = h;
+	}
+
+	/*static bool compare(node& a, node& b)
+	{
+		return (a.g + a.h) > (b.g + b.h);
+	}*/
+
+};
+
+struct dir
+{
+	int x;
+	int y;
+	dir(int a, int b)
+	{
+		x = a;
+		y = b;
+	}
+};
+
+struct STAIR
+{
+	int id;
+	double up_x;
+	double up_y;
+	double down_x;
+	double down_y;
+	STAIR(int i, double ux, double uy, double dx, double dy)
+	{
+		id = i;
+		up_x = ux;
+		up_y = uy;
+		down_x = dx;
+		down_y = dy;
+	}
+};
+
+struct QUEUE
+{
+	int id;
+	int a_num = 0;
+	double x;
+	double y;
+	int level;
+	//bool symptom = 1;
+	list<AGENT*> out_list;
+	// list<AGENT*> in_list;
+	vector<cordinate> path;
+
+	int point_num = 0;
+
+	int gap = 10; // 10 = 1m
+	int q_len = 10;
+
+	int q_time = 10;
+
+	int up_down = 0; // -1 line goes up, 1 line goes down
+	int left_right = 0; // -1 line goes left ,1 line goes right 
+
+	QUEUE()
+	{
+		a_num = 0;
+		path.push_back(cordinate(x, y, level));
+	}
+	QUEUE(int id1, double x1, double y1, int level1, int u,int l)
+	{
+		id = id1;
+		x = x1;
+		y = y1;
+		level = level1;
+		a_num = 0;
+		path.push_back(cordinate(x, y, level));
+		up_down = u;
+		left_right = l;
+	}
+
+	void queue_back();
+
+};
+
+struct ROOM
+{
+	int id;
+	double x;
+	double y;
+	int level = 0;
+
+	int max_agent;
+	int agent_num = 0;
+	int time = 10;
+
+	QUEUE* q;
+
+	ROOM()
+	{
+		agent_num = 0;
+	}
+
+	ROOM(int i, double x1, double y1, int level1, int max, int time1, QUEUE* q1)
+	{
+		id = i;
+		x = x1;
+		y = y1;
+		level = level1;
+		max_agent = max;
+		time = time1;
+		q = q1;
+		agent_num = 0;
+
+	}
+
+};
+
+
+
+STAIR s1(0, 82, 7.6, 82, 11);
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -274,48 +439,6 @@ void obline_force(AGENT* a, OBLINE* l, double* fx, double* fy)
 //函数声明
 void A_star(AGENT*);
 bool in_map(int, int, int);
-
-// 结构体
-struct node
-{
-	int x;
-	int y;
-	int g; // 移动代价
-	int h; // 估算成本
-	bool flag; // 这里用flag来表示node被推入close_list
-	bool check;
-
-
-
-	node* parent; // 父节点,从终点依次指向起点
-
-	node() = default;
-
-	node(int a, int b, double h = 0) {
-		flag = 0;
-		check = 0;
-		x = a;
-		y = b;
-		h = h;
-	}
-
-	/*static bool compare(node& a, node& b)
-	{
-		return (a.g + a.h) > (b.g + b.h);
-	}*/
-
-};
-
-struct dir
-{
-	int x;
-	int y;
-	dir(int a, int b)
-	{
-		x = a;
-		y = b;
-	}
-};
 
 // 数据
 vector<vector<vector<node>>> map_matrix_A;
@@ -575,25 +698,6 @@ bool in_map(int x, int y,int level)
 
 //---------------------------------------------以下为3D部分-------------------------------------------------
 
-// 结构体
-struct stair
-{
-	int id;
-	double up_x;
-	double up_y;
-	double down_x;
-	double down_y;
-	stair(int i,double ux, double uy, double dx, double dy)
-	{
-		id = i;
-		up_x = ux;
-		up_y = uy;
-		down_x = dx;
-		down_y = dy;
-	}
-};
-stair s1(0,82,7.6,82,11);
-
 
 // 函数声明
 void update_g(AGENT*);
@@ -656,43 +760,17 @@ void use_lift(AGENT* a)
 struct cordinate goal[6] = { {80,57.5,1} , { 54,18,0 }, { 13.5,55.5,0 }, { 50,41,1 }, { 80,18.4,2 }, {50,34.7,2} };
 
 
-struct QUEUE
-{
-	int id;
-	int a_num = 0;
-	double x;
-	double y;
-	int level;
-	//bool symptom = 1;
-	list<AGENT*> out_list;
-	// list<AGENT*> in_list;
-	vector<cordinate> path;
 
-	int point_num = 0;
-	QUEUE() = default;
-	QUEUE(int id1,double x1, double y1,int level1)
-	{
-		id = id1;
-		x = x1;
-		y = y1;
-		level = level1;
-		a_num = 0;
-		path.push_back(cordinate(x, y , level));
-	}
-	
-	void queue_back();
-
-};
 
 void QUEUE::queue_back()
 {
-	if (a_num < 10)
+	if (a_num < q_len)
 	{
-		path.push_back(cordinate(x, y - (a_num / map_factor) * 10, level));
+		path.push_back(cordinate(x + left_right * (a_num / map_factor) * gap, y + up_down* (a_num / map_factor) * gap, level));
 	}
 	else
 	{
-		path.push_back(cordinate(x, y - (10 / map_factor) * 10 - (a_num - 10) / map_factor * 0.01, level));
+		path.push_back(cordinate(x + left_right * (q_len / map_factor) * gap + left_right * (a_num - q_len) / map_factor * 0.01, y + up_down * (q_len / map_factor) * gap + up_down * (a_num - q_len) / map_factor * 0.01, level));
 	}
 
 }
@@ -700,7 +778,8 @@ void QUEUE::queue_back()
 // 队列创建 在init_map中
 // 53.4 71.5
 
-vector<QUEUE*> q_list = {};
+
+
 
 
 // 函数声明
@@ -708,9 +787,9 @@ void go_queue(AGENT*,QUEUE*);
 void in_queue(AGENT*);
 void out_queue(AGENT*);
 void cant_process(AGENT*);
+void go_room(AGENT*, ROOM*);
 
 // 参数
-double registration_time = 10;
 
 
 // 函数实现
@@ -735,14 +814,22 @@ void in_queue(AGENT* a)
 	a->Q->a_num += 1;
 	a->order = a->Q->a_num;
 	a->path.clear();
+
 	if (a->order > a->Q->point_num)
 	{
+		//cout << "in" << endl;
+		//cout << a->Q->path.size()<<endl;
+
 		a->Q->point_num = a->order;
 		a->Q->queue_back();
+		//cout << a->Q->path.size() << endl;
 	}
-
+	//cout << "front" << endl;
+	//cout << a->order << endl;
+	//cout << a->Q->path.size() << endl;
 	a->next_gx = a->Q->path[a->order].x;
 	a->next_gy = a->Q->path[a->order].y;
+	//cout << "rear" << endl;
 
 }
 
@@ -763,11 +850,6 @@ void out_queue(AGENT* a)
 	}
 	a->in_queue = false;
 	a->Q->out_list.remove(a);
-	int rand = int(randval(0, 6));
-	a->fgx = goal[rand].x;
-	a->fgy = goal[rand].y;
-	a->goal_level = goal[rand].level;
-	update_g(a);
 }
 
 void cant_process(AGENT* a)
@@ -793,6 +875,68 @@ void cant_process(AGENT* a)
 
 
 //---------------------------------------------以上为排队部分-------------------------------------------------
+
+//---------------------------------------------以下为ROOM部分-------------------------------------------------
+
+
+
+// 函数声明
+
+void in_room(AGENT*);
+void out_room(AGENT*);
+
+
+// 函数实现
+void go_room(AGENT* a, ROOM* r)
+{
+	a->r = r;
+	go_queue(a, r->q);
+	a->go_room = true;
+}
+
+
+void in_room(AGENT* a)
+{	
+	if (a->r->agent_num < a->r->max_agent)
+	{
+		a->r->agent_num += 1;
+		a->Q->a_num -= 1;
+		for (auto& a_q : a->Q->out_list)
+		{
+			if (a_q->order && a_q->in_queue)
+			{
+				a_q->order -= 1;
+				a_q->next_gx = a->Q->path[a_q->order].x;
+				a_q->next_gy = a->Q->path[a_q->order].y;
+			}
+		}
+		a->in_queue = false;
+		a->go_room = false;
+		a->in_room = true;
+		a->Q->out_list.remove(a);
+		a->fgx = a->r->x;
+		a->fgy = a->r->y;
+		a->goal_level = a->r->level;
+		update_g(a);
+	}
+	
+}
+
+
+void out_room(AGENT* a)
+{
+	a->in_room = false;
+	a->r->agent_num -= 1;
+	int rand = int(randval(0, 6));
+	a->fgx = goal[rand].x;
+	a->fgy = goal[rand].y;
+	a->goal_level = goal[rand].level;
+	update_g(a);
+}
+
+
+
+//---------------------------------------------以上为ROOM部分-------------------------------------------------
 
 //---------------------------------------------以下为RPD部分-------------------------------------------------
 

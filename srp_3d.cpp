@@ -13,8 +13,8 @@ using namespace std;
 const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
-int agent_num = 500;
-int step_num = 23000;
+int agent_num = 50;
+int step_num = 10000;
 double tick = 0.05; // timestep
 int jam_time_threshole_1 = 50; // 高agent密度拥堵时间阈值
 int jam_time_threshole_2 = 150; // 低agent密度拥堵时间阈值
@@ -27,6 +27,9 @@ vector<AGENT> agent_list; // agent vector
 vector<vector<OBLINE>> obline_list;
 vector<vector<double>> seq;
 vector<AGENT> agent_back_list; // agent vector
+
+vector<QUEUE*> q_list = {};
+vector<ROOM*> r_list = {};
 
 // 输出文件
 FILE* f = fopen("C:/Users/leesh/Desktop/srp/output_3d/output.txt", "w");
@@ -83,8 +86,10 @@ void init_obline(string obline_file[], int level)
 
 void init_map(string map_file[], int level)
 {
+	// 分层
 	for (int k = 0; k < level; ++k)
 	{
+		// map_matrix
 		vector<vector<int>> temp1;
 		fstream infile(map_file[k], ios::in);
 		string buf = "";
@@ -111,6 +116,7 @@ void init_map(string map_file[], int level)
 		map_matrix.push_back(temp1);
 		infile.close();
 
+		// A* matrix
 		vector<vector<node>> temp3;
 		for (int i = 0; i < row_num[k]; i++)
 		{
@@ -123,7 +129,7 @@ void init_map(string map_file[], int level)
 		}
 		map_matrix_A.push_back(temp3);
 
-
+		//  density map
 		vector<vector<int>> temp5;
 		for (int i = 0; i < row_num[k]; i++)
 		{
@@ -138,16 +144,43 @@ void init_map(string map_file[], int level)
 
 	}
 
-	// queue
-	for (int i = 0; i < 15; ++i)
+	// registration queue
+	for (int i = 0; i < 6; ++i)
 	{
-		QUEUE* q = new QUEUE(0, 56.4 - i * 2.5, 71.5, 0);
+		QUEUE* q = new QUEUE(1, 59.8 - i * 2, 71.5, 0,-1,0);
+		q->q_len = 15;
+		q_list.push_back(q);
+	}
+	for (int i = 0; i < 10; ++i)
+	{
+		QUEUE* q = new QUEUE(1, 40.2 - i * 2, 63, 0, 1, 0);
+		q->q_len = 10;
 		q_list.push_back(q);
 	}
 
-	
+
+	fstream infile("./map/room.txt", ios::in);
+	string buf;
+	getline(infile, buf);
+	while (!infile.eof())
+	{
+		OBLINE temp;
+		stringstream ss(buf);
+		QUEUE* q = new QUEUE();
+		ss >> q->id >> q->x >> q->y >> q->level >> q->up_down >> q->left_right >> q->q_len;
+		getline(infile, buf);
+		ROOM* r = new ROOM();
+		stringstream sss(buf);
+		sss >> r->id >> r->x >> r->y >> r->level >> r->max_agent >> r->time;
+		r->q = q;
+		getline(infile, buf);
+		r_list.push_back(r);
+	}
+	infile.close();
+
 
 }
+
 
 
 void init_agent_seq(string seq_file)
@@ -299,30 +332,48 @@ void step()
 		// agent 为队首
 		if (a->in_queue && a->order == 1)
 		{
-			//cout << "order 1" << endl;
-			// 并且已经在柜台前
-			if (sqrt((a->x - a->Q->x) * (a->x - a->Q->x) + (a->y - a->Q->y) * (a->x - a->Q->x)) < 1)
+			if (a->go_room == false)
 			{
-				a->cant_process_time = 0;
-				a->process_time += tick;
-				if (a->process_time >= registration_time)
+				//cout << "order 1" << endl;
+				// 并且已经在柜台前
+				if (sqrt((a->x - a->Q->x) * (a->x - a->Q->x) + (a->y - a->Q->y) * (a->x - a->Q->x)) < 1)
 				{
-					// 后期不同的行为序列在此处为agent的目标赋值
-					out_queue(a);
+					a->cant_process_time = 0;
+					a->process_time += tick;
+					if (a->process_time >= a->Q->q_time)
+					{
+						// 后期不同的行为序列在此处为agent的目标赋值
+						out_queue(a);
+						go_room(a, r_list[0]);
+						update_g(a);
+					}
+				}
+				else
+				{
+					a->cant_process_time += tick;
+					if (a->cant_process_time >= a->Q->q_time)
+					{
+						// cout << "cant" << endl;
+						cant_process(a);
+					}
 				}
 			}
-			else
+			else if (a->go_room == true)
 			{
-				a->cant_process_time += tick;
-				if (a->cant_process_time >= registration_time - 3)
-				{
-					// cout << "cant" << endl;
-					cant_process(a);
-				}
-			}
-			
-			
+				in_room(a);
+			}		
 		}
+
+		if (a->in_room)
+		{
+			
+			a->room_time += tick;
+			if (a->room_time > a->r->time)
+			{
+				out_room(a);
+			}
+		}
+
 
 		if (a->np == 1)
 		{
@@ -591,7 +642,7 @@ int main()
 	cout << "Initializing path..." << endl;
 	for (auto& a : agent_list)
 	{
-		int rand_q = int(randval(0, 15));
+		int rand_q = int(randval(0, 16));
 		go_queue(&a, q_list[rand_q]);
 
 		update_g(&a);
