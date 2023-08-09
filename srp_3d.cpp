@@ -23,10 +23,10 @@ double total_time = 0;
 // 程序数据
 int  obstical_line_num[total_level] = {};
 clock_t total_start, total_end;
-vector<AGENT> agent_list; // agent vector
+vector<AGENT*> agent_list; // agent vector
 vector<vector<OBLINE>> obline_list;
 vector<vector<double>> seq;
-vector<AGENT> agent_back_list; // agent vector
+vector<AGENT*> agent_back_list; // agent vector
 
 vector<QUEUE*> q_list = {};
 vector<ROOM*> r_list = {};
@@ -205,26 +205,26 @@ void init_agent_seq(string seq_file)
 	cout << "Initializing " << agent_num << " agent(s)..." << endl;;
 	for (int i = 0; i < agent_num; i++)
 	{
-		AGENT a;
-		a.id = int(seq[i][0]);
-		a.x = seq[i][1];
-		a.y = seq[i][2];
-		a.level = int(seq[i][3]);
-		a.m = 80;
-		a.gx = seq[i][4];
-		a.gy = seq[i][5];
-		a.fgx = seq[i][4];
-		a.fgy = seq[i][5];
-		a.goal_level = int(seq[i][6]);
-		a.vx = randval(-2, 2);
-		a.vy = randval(-2, 2);
-		a.v0 = MAX_V;
-		a.next_gx = seq[i][4];
-		a.next_gy = seq[i][5];
-		a.dis = sqrt((a.x - a.gx) * (a.x - a.gx) + (a.y - a.gy) * (a.y - a.gy)) * (abs(a.goal_level - a.level) + 1);
+		AGENT* a = new AGENT;
+		a->id = int(seq[i][0]);
+		a->x = seq[i][1];
+		a->y = seq[i][2];
+		a->level = int(seq[i][3]);
+		a->m = 80;
+		a->gx = seq[i][4];
+		a->gy = seq[i][5];
+		a->fgx = seq[i][4];
+		a->fgy = seq[i][5];
+		a->goal_level = int(seq[i][6]);
+		a->vx = randval(-2, 2);
+		a->vy = randval(-2, 2);
+		a->v0 = MAX_V;
+		a->next_gx = seq[i][4];
+		a->next_gy = seq[i][5];
+		a->dis = sqrt((a->x - a->gx) * (a->x - a->gx) + (a->y - a->gy) * (a->y - a->gy)) * (abs(a->goal_level - a->level) + 1);
 		int rand = int(randval(0, 6));
-		a.color = rand;
-		a.arrive_time = seq[i][7];
+		a->color = rand;
+		a->arrive_time = seq[i][7];
 		agent_back_list.push_back(a);
 	}
 
@@ -239,42 +239,44 @@ void init_agent(int agent_num)
 	{
 		int rand = int(randval(0, 6));
 		//cout << rand << endl;
-		AGENT a;
-		a.id = i;
+		AGENT* a = new AGENT;
+		a->id = i;
 		//a.level = int(randval(0, total_level));
-		a.level = 0;
+		a->level = 0;
 		do
 		{
-			a.x = randval(0, col_num[a.level] - 1) / map_factor;
-			a.y = randval(0, row_num[a.level] - 1) / map_factor;
-			//a.x = 31.35;
-			//a.y = 50.61;
+			//a.x = randval(0, col_num[a.level] - 1) / map_factor;
+			//a.y = randval(0, row_num[a.level] - 1) / map_factor;
+			
+			a->x = 8;
+			a->y = 62.3;
 
-		} while (map_matrix[a.level][int(a.y * map_factor)][int(a.x * map_factor)] == 0);
+		} while (map_matrix[a->level][int(a->y * map_factor)][int(a->x * map_factor)] == 0);
 
-		a.m = 80;
-		a.vx = randval(-2, 2);
-		a.vy = randval(-2, 2);
-		a.v0 = MAX_V;
+		a->m = 80;
+		a->vx = randval(-2, 2);
+		a->vy = randval(-2, 2);
+		a->v0 = MAX_V;
 		//a.gx = 32;
 		//a.gy = 22.5;
-		a.gx = goal[rand].x;
-		a.gy = goal[rand].y;
-		a.fgx = goal[rand].x;
-		a.fgy = goal[rand].y;
-		a.goal_level = goal[rand].level;
-		a.color = rand;
+		a->gx = goal[rand].x;
+		a->gy = goal[rand].y;
+		a->fgx = goal[rand].x;
+		a->fgy = goal[rand].y;
+		a->goal_level = goal[rand].level;
+		a->color = rand;
 		//cout << a.gx << " " << a.gy << endl;
 		//a.next_gx = 32;
 		//a.next_gy = 22.5;
-		a.next_gx = goal[rand].x;
-		a.next_gy = goal[rand].y;
-		a.dis = sqrt((a.x - a.gx) * (a.x - a.gx) + (a.y - a.gy) * (a.y - a.gy)) * (abs(a.goal_level-a.level)+1);
-		
+		a->next_gx = goal[rand].x;
+		a->next_gy = goal[rand].y;
+		a->dis = sqrt((a->x - a->gx) * (a->x - a->gx) + (a->y - a->gy) * (a->y - a->gy)) * (abs(a->goal_level-a->level)+1);
+	
+		a->arrive_time = randval(0,200);
 		// 在这里push a到Q->out_list会出问题
 		
 
-		agent_list.push_back(a);
+		agent_back_list.push_back(a);
 	}
 
 }
@@ -319,7 +321,7 @@ void step()
 
 	for (int i = 0; i < agent_list.size(); ++i)
 	{
-		AGENT* a = &agent_list[i];
+		AGENT* a = agent_list[i];
 		
 		if (a->arrived)
 		{
@@ -399,7 +401,7 @@ void step()
 
 		for (int j = 0; j < agent_list.size(); ++j)
 		{
-			AGENT* b = &agent_list[j];
+			AGENT* b = agent_list[j];
 			if (b->id == a->id || a->level != b->level)continue;
 			double dis = agent_dis(a, b);
 			if (dis <= sense_range)//超出感知范围不计算
@@ -537,8 +539,8 @@ void update_density()
 	
 	for (int i = 0; i < agent_list.size(); ++i)
 	{
-		if (agent_list[i].arrived)continue;
-		if (agent_list[i].vx <= 0.1 && agent_list[i].vy <= 0.1)
+		if (agent_list[i]->arrived)continue;
+		if (agent_list[i]->vx <= 0.1 && agent_list[i]->vy <= 0.1)
 		{
 
 			for (int j = -3; j <= 3; ++j)
@@ -546,9 +548,9 @@ void update_density()
 				for (int k = -3; k <= 3; ++k)
 				{
 
-					if (in_map(int(agent_list[i].x * map_factor + j), int(agent_list[i].y * map_factor + k), agent_list[i].level))
+					if (in_map(int(agent_list[i]->x * map_factor + j), int(agent_list[i]->y * map_factor + k), agent_list[i]->level))
 					{
-						density_map[agent_list[i].level][int(agent_list[i].y * map_factor + k)][int(agent_list[i].x * map_factor + j)] += 2 * (abs(j) + abs(k));//***
+						density_map[agent_list[i]->level][int(agent_list[i]->y * map_factor + k)][int(agent_list[i]->x * map_factor + j)] += 2 * (abs(j) + abs(k));//***
 					}
 				}
 			}
@@ -584,10 +586,13 @@ void push_new_agent()
 {
 	for (int i = 0; i < agent_back_list.size(); ++i)
 	{
-		if (total_time >= agent_back_list[i].arrive_time)
+		if (total_time >= agent_back_list[i]->arrive_time)
 		{
-			update_g(&agent_back_list[i]);
-			agent_list.push_back(agent_back_list[i]);
+			AGENT* a = agent_back_list[i];
+			int rand_q = int(randval(0, 16));
+			go_queue(a, q_list[rand_q]);
+			update_g(a);
+			agent_list.push_back(a);
 			agent_back_list.erase(agent_back_list.begin() + i);
 
 		}
@@ -634,7 +639,7 @@ int main()
 	fprintf(ff, "%lld\n", agent_list.size());
 	for (int i = 0; i < agent_list.size(); ++i)
 	{
-		output(&agent_list[i]);
+		output(agent_list[i]);
 	}
 
 	// 初始A★
@@ -643,9 +648,9 @@ int main()
 	for (auto& a : agent_list)
 	{
 		int rand_q = int(randval(0, 16));
-		go_queue(&a, q_list[rand_q]);
+		go_queue(a, q_list[rand_q]);
 
-		update_g(&a);
+		update_g(a);
 		counter++;
 		printf("A_star: %d / %d \r", counter, agent_num);
 	}
