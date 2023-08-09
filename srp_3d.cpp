@@ -13,8 +13,8 @@ using namespace std;
 const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
-int agent_num = 50;
-int step_num = 10000;
+int agent_num = 200;
+int step_num = 20000;
 double tick = 0.05; // timestep
 int jam_time_threshole_1 = 50; // 高agent密度拥堵时间阈值
 int jam_time_threshole_2 = 150; // 低agent密度拥堵时间阈值
@@ -346,7 +346,8 @@ void step()
 					{
 						// 后期不同的行为序列在此处为agent的目标赋值
 						out_queue(a);
-						go_room(a, r_list[0]);
+						int rand_r = int(randval(0, 24));
+						go_room(a, r_list[rand_r]);
 						update_g(a);
 					}
 				}
@@ -386,7 +387,7 @@ void step()
 		//first compute the desired direction;
 		double goal_dis = sqrt((a->x - a->next_gx) * (a->x - a->next_gx) + (a->y - a->next_gy) * (a->y - a->next_gy));
 		if (goal_dis == 0)goal_dis = 1e-10;
-		a->tao_1 = 0.2 + (goal_dis / a->dis) * 0.3;
+		a->tao_1 = 0.4 + (goal_dis / a->dis) * 0.3;
 		double dx = a->v0 * (a->next_gx - a->x) / goal_dis;//期望方向向量的x
 		double dy = a->v0 * (a->next_gy - a->y) / goal_dis;
 
@@ -443,6 +444,7 @@ void step()
 			a->y = 1e-10;
 		}
 
+		a->jam_time += 3;
 
 		// jam_time 判断
 		if ((!a->arrived) && a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1 && !a->in_queue)
@@ -483,7 +485,7 @@ void step()
 			a->next_gx = a->path.front().x / map_factor;
 			a->next_gy = a->path.front().y / map_factor;
 		}
-		else if (a->path.size() == 1 && !a->go_queue && !a->in_queue && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < a->arrive_range * a_step)
+		else if (a->path.size() == 1 && !(a->go_queue&& a->level == a->goal_level) && !a->in_queue && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < a->arrive_range * a_step)
 		{
 			// 判断是否到达最终目标,是则标注已到达,否则执行上下楼函数
 			if (a->goal_level == a->level)
@@ -510,7 +512,7 @@ void step()
 
 
 		// go_queue 去排队状态的判断
-		if (a->go_queue && a->path.size() <= 10 && a->goal_level == a->level && sqrt((a->x- a->Q->x) * (a->x - a->Q->x) + (a->y - a->Q->y) * (a->y - a->Q->y)) < 10)
+		if (a->go_queue && a->level == a->goal_level && a->path.size() <= 10 && a->goal_level == a->level && sqrt((a->x- a->Q->x) * (a->x - a->Q->x) + (a->y - a->Q->y) * (a->y - a->Q->y)) < 10)
 		{
 				a->arrived = true;
 		}
@@ -666,11 +668,15 @@ int main()
 		step();
 
 		// 保证在agent重新搜索路径之前就能更新一次密度图
-		if ((i + 1) % jam_time_threshole_1-1 == 0)
+	/*	if ((i + 1) % jam_time_threshole_1-1 == 0)
+		{
+			update_density();
+		}*/
+
+		if ((i + 1) % 25 == 0)
 		{
 			update_density();
 		}
-
 		if ((i + 1) % 10 == 0)
 		{
 

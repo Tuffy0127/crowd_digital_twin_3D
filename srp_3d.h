@@ -927,10 +927,9 @@ void out_room(AGENT* a)
 {
 	a->in_room = false;
 	a->r->agent_num -= 1;
-	int rand = int(randval(0, 6));
-	a->fgx = goal[rand].x;
-	a->fgy = goal[rand].y;
-	a->goal_level = goal[rand].level;
+	a->fgx = 8;
+	a->fgy = 62.3;
+	a->goal_level = 0;
 	update_g(a);
 }
 
