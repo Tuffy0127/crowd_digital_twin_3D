@@ -654,7 +654,7 @@ int main()
 
 	// ³õÊ¼×´Ì¬Êä³ö
 	fprintf(f, "%lld\n", agent_list.size());
-	fprintf(ff, "%d,%g\n", step_num, map_factor);
+	fprintf(ff, "%d,%g,%d\n", step_num, map_factor,agent_num);
 	fprintf(ff, "%lld\n", agent_list.size());
 	for (int i = 0; i < agent_list.size(); ++i)
 	{
