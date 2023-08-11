@@ -28,8 +28,8 @@ vector<vector<OBLINE>> obline_list;
 vector<vector<double>> seq;
 vector<AGENT*> agent_back_list; // agent vector
 
-vector<QUEUE*> q_list = {};
-vector<ROOM*> r_list = {};
+
+
 
 // 输出文件
 FILE* f = fopen("C:/Users/leesh/Desktop/srp/output_3d/output.txt", "w");
@@ -157,6 +157,12 @@ void init_map(string map_file[], int level)
 		q->q_len = 10;
 		q_list.push_back(q);
 	}
+	for (int i = 0; i < 3; ++i)
+	{
+		QUEUE* q = new QUEUE(1, 16.8 - i * 2, 63, 0, 1, 0);
+		q->q_len = 10;
+		med_q_list.push_back(q);
+	}
 
 
 	fstream infile("./map/room.txt", ios::in);
@@ -248,8 +254,8 @@ void init_agent(int agent_num)
 			//a.x = randval(0, col_num[a.level] - 1) / map_factor;
 			//a.y = randval(0, row_num[a.level] - 1) / map_factor;
 			
-			a->x = 8;
-			a->y = 62.3;
+			a->x = 8 + randval(-2, 2);
+			a->y = 63.3 + randval(-2, 2);
 
 		} while (map_matrix[a->level][int(a->y * map_factor)][int(a->x * map_factor)] == 0);
 
@@ -257,23 +263,20 @@ void init_agent(int agent_num)
 		a->vx = randval(-2, 2);
 		a->vy = randval(-2, 2);
 		a->v0 = MAX_V;
-		//a.gx = 32;
-		//a.gy = 22.5;
 		a->gx = goal[rand].x;
 		a->gy = goal[rand].y;
 		a->fgx = goal[rand].x;
 		a->fgy = goal[rand].y;
 		a->goal_level = goal[rand].level;
 		a->color = rand;
-		//cout << a.gx << " " << a.gy << endl;
-		//a.next_gx = 32;
-		//a.next_gy = 22.5;
 		a->next_gx = goal[rand].x;
 		a->next_gy = goal[rand].y;
 		a->dis = sqrt((a->x - a->gx) * (a->x - a->gx) + (a->y - a->gy) * (a->y - a->gy)) * (abs(a->goal_level-a->level)+1);
 	
 		a->arrive_time = randval(0,200);
 		// 在这里push a到Q->out_list会出问题
+
+		a->state = state::reg;
 		
 
 		agent_back_list.push_back(a);
@@ -329,6 +332,12 @@ void step()
 			{
 				in_queue(a);
 			}
+			else if (a->state == state::leave)
+			{
+				output(a);
+				agent_list.erase(agent_list.begin() + i);
+				//continue;
+			}
 		}
 
 		// agent 为队首
@@ -346,8 +355,7 @@ void step()
 					{
 						// 后期不同的行为序列在此处为agent的目标赋值
 						out_queue(a);
-						int rand_r = int(randval(0, 24));
-						go_room(a, r_list[rand_r]);
+						do_sth(a);
 						update_g(a);
 					}
 				}
@@ -356,7 +364,6 @@ void step()
 					a->cant_process_time += tick;
 					if (a->cant_process_time >= a->Q->q_time)
 					{
-						// cout << "cant" << endl;
 						cant_process(a);
 					}
 				}
@@ -373,7 +380,10 @@ void step()
 			a->room_time += tick;
 			if (a->room_time > a->r->time)
 			{
+				
 				out_room(a);
+				do_sth(a);
+				update_g(a);
 			}
 		}
 
@@ -444,7 +454,7 @@ void step()
 			a->y = 1e-10;
 		}
 
-		a->jam_time += 3;
+		// a->jam_time += 3;
 
 		// jam_time 判断
 		if ((!a->arrived) && a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1 && !a->in_queue)
@@ -488,7 +498,7 @@ void step()
 		else if (a->path.size() == 1 && !(a->go_queue&& a->level == a->goal_level) && !a->in_queue && sqrt((a->x * map_factor - a->path.front().x) * (a->x * map_factor - a->path.front().x) + (a->y * map_factor - a->path.front().y) * (a->y * map_factor - a->path.front().y)) < a->arrive_range * a_step)
 		{
 			// 判断是否到达最终目标,是则标注已到达,否则执行上下楼函数
-			if (a->goal_level == a->level)
+			if (a->goal_level == a->level&&!a->go_room&&!a->in_room)
 			{
 				a->arrived = true;
 
@@ -545,14 +555,14 @@ void update_density()
 		if (agent_list[i]->vx <= 0.1 && agent_list[i]->vy <= 0.1)
 		{
 
-			for (int j = -3; j <= 3; ++j)
+			for (int j = -4; j <= 4; ++j)
 			{
-				for (int k = -3; k <= 3; ++k)
+				for (int k = -4; k <= 4; ++k)
 				{
 
 					if (in_map(int(agent_list[i]->x * map_factor + j), int(agent_list[i]->y * map_factor + k), agent_list[i]->level))
 					{
-						density_map[agent_list[i]->level][int(agent_list[i]->y * map_factor + k)][int(agent_list[i]->x * map_factor + j)] += 2 * (abs(j) + abs(k));//***
+						density_map[agent_list[i]->level][int(agent_list[i]->y * map_factor + k)][int(agent_list[i]->x * map_factor + j)] += 5 * (abs(5-j) + abs(5-k));//***
 					}
 				}
 			}
@@ -591,8 +601,9 @@ void push_new_agent()
 		if (total_time >= agent_back_list[i]->arrive_time)
 		{
 			AGENT* a = agent_back_list[i];
-			int rand_q = int(randval(0, 16));
-			go_queue(a, q_list[rand_q]);
+			/*int rand_q = int(randval(0, 16));
+			go_queue(a, q_list[rand_q]);*/
+			do_sth(a);
 			update_g(a);
 			agent_list.push_back(a);
 			agent_back_list.erase(agent_back_list.begin() + i);
@@ -619,7 +630,6 @@ bool cross(double sx1, double sy1, double ex1, double ey1, double sx2, double sy
 	if (mult(sx1, sy1, ex2, ey2, sx2, sy2) * mult(ex2, ey2, ex1, ey1, sx2, sy2) < 0)return false;
 	return true;
 }
-
 
 
 // main

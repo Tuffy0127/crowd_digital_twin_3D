@@ -40,6 +40,11 @@ vector<vector<vector<int>>> map_matrix; // 点阵图
 vector<vector<vector<int>>> density_map; // 人群密度图,给A*考虑选取人少的路径
 
 
+
+
+enum class state;
+
+
 // 结构体声明
 struct cordinate;
 struct AGENT;
@@ -109,7 +114,8 @@ struct AGENT
 	bool in_room = 0;
 	double room_time = 0;
 
-
+	enum class state state;
+	enum class state last_state;
 	
 	
 
@@ -266,7 +272,9 @@ struct ROOM
 STAIR s1(0, 82, 7.6, 82, 11);
 
 
-
+vector<QUEUE*> q_list = {};
+vector<ROOM*> r_list = {};
+vector<QUEUE*> med_q_list = {};
 
 
 
@@ -621,15 +629,15 @@ void A_star(AGENT* a)
 							map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].x = temp->x + d.x;
 							map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].y = temp->y + d.y;
 							map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].h = (abs(int(a->gx * map_factor) - (temp->x + d.x)) + abs(int(a->gy * map_factor) - (temp->y + d.y))) * 10;
-							map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].g = temp->g + 14 * a_step * (point_type * 0.75 + density_map[a->level][temp->y + d.y][temp->x + d.x]);
+							map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].g = temp->g + 15 * a_step * (point_type * 0.75 + density_map[a->level][temp->y + d.y][temp->x + d.x]);
 							map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].parent = temp;
 							map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].flag = 1;
 						}
 						else // 再次筛查一个点d,只有在通过(这次搜索的点temp到达d的代价)比(d的父节点到d)更小时,才会更新
 						{
-							if (temp->g + 14 * a_step < map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].g)
+							if (temp->g + 15 * a_step < map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].g)
 							{
-								map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].g = temp->g + 14 * a_step * (point_type * 0.75 + density_map[a->level][temp->y + d.y][temp->x + d.x]);
+								map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].g = temp->g + 15 * a_step * (point_type * 0.75 + density_map[a->level][temp->y + d.y][temp->x + d.x]);
 								map_matrix_A[a->level][temp->y + d.y][temp->x + d.x].parent = temp;
 							}
 						}
@@ -925,33 +933,207 @@ void in_room(AGENT* a)
 
 void out_room(AGENT* a)
 {
+	a->room_time = 0;
 	a->in_room = false;
 	a->r->agent_num -= 1;
-	a->fgx = 8;
-	a->fgy = 62.3;
-	a->goal_level = 0;
-	update_g(a);
 }
 
-
+//a->fgx = 8;
+//a->fgy = 62.3;
+//a->goal_level = 0;
 
 //---------------------------------------------以上为ROOM部分-------------------------------------------------
 
 //---------------------------------------------以下为RPD部分-------------------------------------------------
 
-struct doing
+enum class state
 {
-	double time;
+	reg,// 挂号
+	doc, // 看医生
+	med, // 取药
+	ct, // 查ct
+	wc, // 上厕所
+	leave, // 离开
+
 };
 
+// 函数声明
+void do_sth(AGENT*);
 
-struct RPD_model
+void go_reg(AGENT*);
+void go_doc(AGENT*);
+void go_med(AGENT*);
+void go_ct(AGENT*);
+void go_wc(AGENT*);
+void go_leave(AGENT*);
+
+
+// 函数实现
+void do_sth(AGENT* a)
 {
-	int symptom;
-	int state;
-	int time;
+	
+	if (a->state == state::reg)
+	{
+		go_reg(a);
+	}
+	else if (a->state == state::doc)
+	{
+		go_doc(a);
+	}
+	else if (a->state == state::med)
+	{
+		go_med(a);
+	}
+	else if (a->state == state::ct)
+	{
+		go_ct(a);
+	}
+	else if (a->state == state::wc)
+	{
+		go_wc(a);
+	}
+	else if (a->state == state::leave)
+	{
+		go_leave(a);
+	}
+	
 
-};
+}
+
+void go_reg(AGENT* a)
+{
+	int min = INT_MAX;
+	QUEUE* least_q = NULL;
+	for (auto& q : q_list)
+	{
+		if (q->out_list.size() < min)
+		{
+			least_q = q;
+			min = q->out_list.size();
+		}
+	}
+	go_queue(a, least_q);
+	a->arrived = false;
+	
+	double rand_s = randval(0, 2.5);
+	if (rand_s < 1)
+	{
+		a->state = state::doc;
+	}
+	else if (rand_s <2)
+	{
+		a->state = state::med;
+	}
+	else if (rand_s < 2.5)
+	{
+		a->last_state = state::reg;
+		a->state = state::wc;
+	}
+	
+}
+
+void go_doc(AGENT* a)
+{
+	int rand_r = 0;
+	do
+	{
+		rand_r = int(randval(0, 24));
+	} while (rand_r == 8 || rand_r == 17 || rand_r == 0 || rand_r == 5 || rand_r == 6);
+	go_room(a, r_list[rand_r]);
+	
+	if (a->last_state != state::ct)
+	{
+		double rand_s = randval(0, 3.5);
+		if (rand_s < 1)
+		{
+			a->state = state::ct;
+		}
+		else if (rand_s < 2)
+		{
+			a->state = state::med;
+		}
+		else if (rand_s < 3)
+		{
+			a->state = state::leave;
+		}
+		else if (rand_s < 3.35)
+		{
+			a->last_state = state::doc;
+			a->state = state::wc;
+		}
+	}
+	else
+	{
+		double rand_s = randval(0, 2.5);
+		if (rand_s < 1)
+		{
+			a->state = state::med;
+		}
+		else if (rand_s < 2)
+		{
+			a->state = state::leave;
+		}
+		else if (rand_s < 2.5)
+		{
+			a->last_state = state::doc;
+			a->state = state::wc;
+		}
+	}
+	
+
+}
+
+void go_med(AGENT* a)
+{
+	int min = INT_MAX;
+	QUEUE* least_q = NULL;
+	for (auto& q : med_q_list)
+	{
+		if (q->out_list.size() < min)
+		{
+			least_q = q;
+			min = q->out_list.size();
+		}
+	}
+	go_queue(a, least_q);
+	a->state = state::leave;
+}
+
+void go_ct(AGENT* a)
+{
+	int rand_r = int(randval(5, 7));
+	go_room(a, r_list[rand_r]);
+	a->last_state = state::ct;
+	a->state = state::doc;
+}
+
+void go_wc(AGENT* a)
+{
+	int rand_r = int(randval(0,3));
+	if (rand_r == 0)
+	{
+		go_room(a, r_list[0]);
+	}
+	else if (rand_r == 1)
+	{
+		go_room(a, r_list[8]);
+	}
+	else if (rand_r == 2)
+	{
+		go_room(a, r_list[17]);
+	}
+	a->state = a->last_state;
+
+
+}
+
+void go_leave(AGENT* a)
+{
+	a->fgx = 8;
+	a->fgy = 62.3;
+	a->goal_level = 0;
+	a->arrived = false;
+}
 
 
 
