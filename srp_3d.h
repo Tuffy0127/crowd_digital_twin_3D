@@ -1136,5 +1136,3 @@ void go_leave(AGENT* a)
 }
 
 
-
-

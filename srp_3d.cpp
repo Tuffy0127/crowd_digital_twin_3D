@@ -14,7 +14,7 @@ const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
 int agent_num = 200;
-int step_num = 20000;
+int step_num = 10000;
 double tick = 0.05; // timestep
 int jam_time_threshole_1 = 50; // 高agent密度拥堵时间阈值
 int jam_time_threshole_2 = 150; // 低agent密度拥堵时间阈值
@@ -305,9 +305,16 @@ void init()
 void output(AGENT* a)
 {
 	fprintf(f, "%d %g %g %d %d %d\n", a->id, a->x, a->y,a->level , a->np, a->color);
-	double dx = a->next_gx - a->x;
-	double dy = a->next_gy - a->y;
-	fprintf(ff, "%d,%g,%g,%d,%g,%g\n", a->id, a->x, a->y, a->level, dx, dy);
+	if (a->in_queue)
+	{
+		double dx = a->gx - a->x;
+		double dy = a->gy - a->y;
+		fprintf(ff, "%d,%g,%g,%d,%g,%g\n", a->id, a->x, a->y, a->level, dx, dy);
+	}
+	else
+	{
+		fprintf(ff, "%d,%g,%g,%d,%g,%g\n", a->id, a->x, a->y, a->level, a->vx, a->vy);
+	}
 	// fprintf(ff, "%d,%g,%g,%d,%g,%g\n", a->id, a->x, a->y,a->level, a->vx, a->vy);
 }
 
