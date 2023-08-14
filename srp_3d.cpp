@@ -13,7 +13,7 @@ using namespace std;
 const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
-int agent_num = 200;
+int agent_num = 100;
 int step_num = 10000;
 double tick = 0.05; // timestep
 int jam_time_threshole_1 = 50; // 高agent密度拥堵时间阈值
@@ -161,6 +161,7 @@ void init_map(string map_file[], int level)
 	{
 		QUEUE* q = new QUEUE(1, 16.8 - i * 2, 63, 0, 1, 0);
 		q->q_len = 10;
+		q->q_time = 5;
 		med_q_list.push_back(q);
 	}
 
@@ -273,7 +274,7 @@ void init_agent(int agent_num)
 		a->next_gy = goal[rand].y;
 		a->dis = sqrt((a->x - a->gx) * (a->x - a->gx) + (a->y - a->gy) * (a->y - a->gy)) * (abs(a->goal_level-a->level)+1);
 	
-		a->arrive_time = randval(0,200);
+		a->arrive_time = randval(0,800);
 		// 在这里push a到Q->out_list会出问题
 
 		a->state = state::reg;

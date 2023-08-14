@@ -25,7 +25,7 @@ using namespace std;
 // sfm参数
 #define k1 120000 // body force parameter
 #define k2 240000 // tangential force parameter 切向力参数s
-#define A 2000 // N// A * exp[dis/B] only social force
+#define A 2000 // N// A * exp[dis/B] only social force  2000
 #define B 0.08 // m
 
 //行列数

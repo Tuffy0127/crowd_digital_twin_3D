@@ -7,5 +7,5 @@ C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(632,73): warning C4244: “=�
 C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(640,74): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
 C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(1012,28): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
 C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.h(1095,28): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
-C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.cpp(173,10): warning C4101: “temp”: 未引用的局部变量
+C:\Users\leesh\Desktop\srp\srp_3d\srp_3d\srp_3d.cpp(174,10): warning C4101: “temp”: 未引用的局部变量
   srp_3d.vcxproj -> C:\Users\leesh\Desktop\srp\srp_3d\x64\Debug\srp_3d.exe
