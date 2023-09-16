@@ -14,7 +14,7 @@ using namespace std;
 #define MAX_OBLINE_NUM 1000 // 最大障碍物数量
 
 // 建模参数
-#define MAX_V 1.02 // agent 最大速度
+#define MAX_V 1.42 // agent 最大速度
 #define sense_range 5 // 感知范围：m
 #define density 320 // 质量/半径，m/density = r 320
 #define tao 0.5 // 目前方向转移到目标方向的加速度参数
@@ -25,7 +25,7 @@ using namespace std;
 // sfm参数
 #define k1 120000 // body force parameter
 #define k2 240000 // tangential force parameter 切向力参数s
-#define A 2000 // N// A * exp[dis/B] only social force  2000
+#define A 5000 // N// A * exp[dis/B] only social force  2000
 #define B 0.08 // m
 
 //行列数

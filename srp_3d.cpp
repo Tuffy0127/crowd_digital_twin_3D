@@ -13,8 +13,8 @@ using namespace std;
 const int thread_num = 12; // OpenMP线程数
 
 // 可调参数
-int agent_num = 100;
-int step_num = 10000;
+int agent_num = 800;
+int step_num = 30000;
 double tick = 0.05; // timestep
 int jam_time_threshole_1 = 50; // 高agent密度拥堵时间阈值
 int jam_time_threshole_2 = 150; // 低agent密度拥堵时间阈值
@@ -145,7 +145,7 @@ void init_map(string map_file[], int level)
 	}
 
 	// registration queue
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 7; ++i)
 	{
 		QUEUE* q = new QUEUE(1, 59.8 - i * 2, 71.5, 0,-1,0);
 		q->q_len = 15;
@@ -157,11 +157,11 @@ void init_map(string map_file[], int level)
 		q->q_len = 10;
 		q_list.push_back(q);
 	}
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
-		QUEUE* q = new QUEUE(1, 16.8 - i * 2, 63, 0, 1, 0);
+		QUEUE* q = new QUEUE(1, 17.8 - i * 2, 63, 0, 1, 0);
 		q->q_len = 10;
-		q->q_time = 5;
+		q->q_time = 3;
 		med_q_list.push_back(q);
 	}
 
@@ -180,6 +180,7 @@ void init_map(string map_file[], int level)
 		stringstream sss(buf);
 		sss >> r->id >> r->x >> r->y >> r->level >> r->max_agent >> r->time;
 		r->q = q;
+		r->time = 180; // 时间有点短这里改一下
 		getline(infile, buf);
 		r_list.push_back(r);
 	}
@@ -187,7 +188,6 @@ void init_map(string map_file[], int level)
 
 
 }
-
 
 
 void init_agent_seq(string seq_file)
@@ -274,7 +274,7 @@ void init_agent(int agent_num)
 		a->next_gy = goal[rand].y;
 		a->dis = sqrt((a->x - a->gx) * (a->x - a->gx) + (a->y - a->gy) * (a->y - a->gy)) * (abs(a->goal_level-a->level)+1);
 	
-		a->arrive_time = randval(0,800);
+		a->arrive_time = randval(0,1200);
 		// 在这里push a到Q->out_list会出问题
 
 		a->state = state::reg;
@@ -308,8 +308,8 @@ void output(AGENT* a)
 	fprintf(f, "%d %g %g %d %d %d\n", a->id, a->x, a->y,a->level , a->np, a->color);
 	if (a->in_queue)
 	{
-		double dx = a->gx - a->x;
-		double dy = a->gy - a->y;
+		double dx = (a->gx - a->x)*0.01;
+		double dy = (a->gy - a->y)*0.01;
 		fprintf(ff, "%d,%g,%g,%d,%g,%g\n", a->id, a->x, a->y, a->level, dx, dy);
 	}
 	else
@@ -430,6 +430,16 @@ void step()
 			}
 		}
 
+		// 在人群密集时限制最大速度
+		if (agent_counter > 15)
+		{
+			a->v0 = 0.8;
+		}
+		else
+		{
+			a->v0 = MAX_V;
+		}
+
 		//int id = omp_get_thread_num();
 		for (int j = 0; j < obstical_line_num[a->level]; j++)
 		{
@@ -462,10 +472,10 @@ void step()
 			a->y = 1e-10;
 		}
 
-		// a->jam_time += 3;
+		// a->jam_time += 10;
 
 		// jam_time 判断
-		if ((!a->arrived) && a->vx <= 0.1 && a->vy <= 0.1 && a->np != 1 && !a->in_queue)
+		if ((!a->arrived) && a->vx <= 0.3 && a->vy <= 0.3 && a->np != 1 && !a->in_queue)
 		{
 			a->tao_1 *= ((jam_time_threshole_2 - a->jam_time) / jam_time_threshole_2);
 			a->jam_time += 1;
@@ -560,17 +570,18 @@ void update_density()
 	for (int i = 0; i < agent_list.size(); ++i)
 	{
 		if (agent_list[i]->arrived)continue;
-		if (agent_list[i]->vx <= 0.1 && agent_list[i]->vy <= 0.1)
+		if (agent_list[i]->vx <= 0.1 && agent_list[i]->vy <= 0.1)// 6
 		{
 
-			for (int j = -4; j <= 4; ++j)
+			for (int j = -5; j <= 5; ++j)
 			{
-				for (int k = -4; k <= 4; ++k)
+				for (int k = -5; k <= 5; ++k)
 				{
 
 					if (in_map(int(agent_list[i]->x * map_factor + j), int(agent_list[i]->y * map_factor + k), agent_list[i]->level))
 					{
-						density_map[agent_list[i]->level][int(agent_list[i]->y * map_factor + k)][int(agent_list[i]->x * map_factor + j)] += 5 * (abs(5-j) + abs(5-k));//***
+						// density_map[agent_list[i]->level][int(agent_list[i]->y * map_factor + k)][int(agent_list[i]->x * map_factor + j)] += 5*(abs(5-j) + abs(5-k));//***
+						density_map[agent_list[i]->level][int(agent_list[i]->y * map_factor + k)][int(agent_list[i]->x * map_factor + j)] += 40;
 					}
 				}
 			}
